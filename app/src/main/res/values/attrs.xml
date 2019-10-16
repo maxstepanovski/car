@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="CarView">
+        <attr name="carTurningRadius" format="integer"/>
+        <attr name="carSpeed" format="integer"/>
+        <attr name="carWidth" format="integer"/>
+        <attr name="carLength" format="integer"/>
+        <attr name="carColor" format="color"/>
+    </declare-styleable>
+</resources>
