@@ -1,31 +1,33 @@
 package ru.stepanov.caranimation
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.content.Context
-import android.graphics.*
+import android.media.MediaPlayer
 import android.util.AttributeSet
+import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
+import android.view.animation.AccelerateInterpolator
+import android.widget.ImageView
+import android.widget.RelativeLayout
+import androidx.core.animation.doOnEnd
+import androidx.core.animation.doOnStart
+import kotlin.math.atan2
+
 
 /**
  *
  *
  * @author Maksim Stepanov on 16.10.2019
  */
-class CarView : View {
-    lateinit var rectPaint: Paint
-    lateinit var pathPaint: Paint
-
-    var carWidth: Int = 50
-    var carLength: Int = 100
-    var turningRadius: Int = 0
-    var speed: Int = 0
-    var color: Int = 0
-    var path: Path = Path()
-
+class CarView : RelativeLayout {
+    lateinit var root: View
+    lateinit var carView: ImageView
+    lateinit var soundtrackEffect: MediaPlayer
+    var neededAngle: Float = 0f
     var isAnimating = false
-    var justStarted = true
-    var touchPoint = Point()
-    var currentPoint = Point()
+
 
     constructor(context: Context?) : super(context) {
         init(context, null)
@@ -39,49 +41,11 @@ class CarView : View {
         if (context == null) {
             return
         }
-        if (attrs == null) {
-            turningRadius = carWidth * 3
-            speed = 1
-            color = resources.getColor(android.R.color.black, null)
-        } else {
-            val typedArray = context.obtainStyledAttributes(attrs, R.styleable.CarView, 0, 0)
-            try {
-                carWidth = typedArray.getInt(R.styleable.CarView_carWidth, 50)
-                carLength = typedArray.getInt(R.styleable.CarView_carLength, 100)
-                turningRadius = typedArray.getInt(R.styleable.CarView_carTurningRadius, carWidth * 3)
-                speed = typedArray.getInt(R.styleable.CarView_carSpeed, 1)
-                color =
-                    typedArray.getColor(R.styleable.CarView_carColor, resources.getColor(android.R.color.black, null))
-            } finally {
-                typedArray.recycle()
-            }
-        }
-        rectPaint = Paint()
-        rectPaint.color = color
-        rectPaint.isAntiAlias = true
-
-
-    }
-
-    override fun onDraw(canvas: Canvas?) {
-        super.onDraw(canvas)
-        if (canvas == null) {
-            return
-        }
-        if (isAnimating) {
-            if (calculateDistance(currentPoint, touchPoint) <= carWidth / 2) {
-                isAnimating = false
-            } else {
-
-
-            }
-        } else {
-            if (justStarted) {
-                currentPoint.x = width / 2
-                currentPoint.y = height / 2
-            }
-        }
-        drawRect(currentPoint.x, currentPoint.y, canvas)
+        root = LayoutInflater.from(context).inflate(R.layout.car_view, this)
+        carView = root.findViewById(R.id.car)
+        soundtrackEffect = MediaPlayer.create(context, R.raw.soundtrack)
+        soundtrackEffect.isLooping = true
+        soundtrackEffect.start()
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
@@ -92,36 +56,58 @@ class CarView : View {
             return false
         }
         if (event.action == MotionEvent.ACTION_DOWN) {
-            touchPoint = Point(event.x.toInt(), event.y.toInt())
             isAnimating = true
-            justStarted = false
+            neededAngle = angleBetweenPoints(
+                carView.x + carView.width / 2,
+                carView.y + carView.height / 2,
+                event.x,
+                event.y
+            ).toFloat()
 
-            path.reset()
-            path.moveTo(currentPoint.x.toFloat(), currentPoint.y.toFloat())
-            path.lineTo(touchPoint.x.toFloat(), touchPoint.y.toFloat())
-            val measure = PathMeasure(path, false)
 
-            rectPaint.pathEffect = PathDashPathEffect(path, measure.length, 0.toFloat(), PathDashPathEffect.Style.TRANSLATE)
+            val tiresSound: MediaPlayer = MediaPlayer.create(context, R.raw.tires)
+            val engineSound = MediaPlayer.create(context, R.raw.engine)
 
-            invalidate()
+            val rotationAnimator = ObjectAnimator.ofFloat(carView, "rotation", neededAngle)
+            rotationAnimator.duration = 2000
+            rotationAnimator.interpolator = AccelerateInterpolator()
+            rotationAnimator.doOnStart {
+                engineSound.start()
+                tiresSound.start()
+            }
+            rotationAnimator.doOnEnd {
+                move(event)
+            }
+            rotationAnimator.start()
         }
+
         return false
     }
 
-    private fun calculateDistance(p1: Point, p2: Point): Int {
-        return Math.sqrt(Math.pow(Math.abs(p1.x - p2.x).toDouble(), 2.0) + Math.pow(Math.abs(p1.y - p2.y).toDouble(), 2.0)).toInt()
+    private fun move(event: MotionEvent) {
+
+
+        val animSet = AnimatorSet()
+        val xTo = event.x
+        val yTo = event.y
+        val y = ObjectAnimator.ofFloat(carView, "translationY", yTo - height / 2 - carView.height / 2)
+        val x = ObjectAnimator.ofFloat(carView, "translationX", xTo - width / 2)
+        animSet.playTogether(x, y)
+        animSet.interpolator = AccelerateInterpolator()
+        animSet.duration = 3000
+        animSet.start()
+        animSet.doOnEnd {
+            isAnimating = false
+        }
     }
 
-    private fun drawRect(x: Int, y: Int, canvas: Canvas) {
-        val halfWidth = carWidth / 2
-        val halfLength = carLength / 2
-
-        canvas.drawRect(
-            (x - halfWidth).toFloat(),
-            (y + halfLength).toFloat(),
-            (x + halfWidth).toFloat(),
-            (y - halfLength).toFloat(),
-            rectPaint
-        )
+    private fun angleBetweenPoints(x0: Float, y0: Float, x1: Float, y1: Float): Double {
+        val dY = y0 - y1
+        val dX = x1 - x0
+        val angle = Math.toDegrees(atan2(dX, dY).toDouble())
+        if (angle >= 0) {
+            return angle
+        }
+        return 360 + angle
     }
 }

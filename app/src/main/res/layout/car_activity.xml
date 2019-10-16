@@ -12,6 +12,6 @@
             app:carWidth="50"
             app:carColor="@color/colorPrimaryDark"
             app:carTurningRadius="200"
-            app:carSpeed="1"/>
+            app:carSpeed="3"/>
 
 </LinearLayout>
