@@ -17,7 +17,7 @@ import kotlin.math.atan2
 
 
 /**
- *
+ * Лучшая вьюха из всех, что я делал XD
  *
  * @author Maksim Stepanov on 16.10.2019
  */
@@ -56,14 +56,12 @@ class CarView : RelativeLayout {
             return false
         }
         if (event.action == MotionEvent.ACTION_DOWN) {
-            isAnimating = true
             neededAngle = angleBetweenPoints(
                 carView.x + carView.width / 2,
                 carView.y + carView.height / 2,
                 event.x,
                 event.y
             ).toFloat()
-
 
             val tiresSound: MediaPlayer = MediaPlayer.create(context, R.raw.tires)
             val engineSound = MediaPlayer.create(context, R.raw.engine)
@@ -74,6 +72,7 @@ class CarView : RelativeLayout {
             rotationAnimator.doOnStart {
                 engineSound.start()
                 tiresSound.start()
+                isAnimating = true
             }
             rotationAnimator.doOnEnd {
                 move(event)
