@@ -43,9 +43,18 @@ class CarView : RelativeLayout {
         }
         root = LayoutInflater.from(context).inflate(R.layout.car_view, this)
         carView = root.findViewById(R.id.car)
+
+    }
+
+    fun startParty() {
         soundtrackEffect = MediaPlayer.create(context, R.raw.soundtrack)
         soundtrackEffect.isLooping = true
         soundtrackEffect.start()
+    }
+
+    fun partyIsOver() {
+        soundtrackEffect.stop()
+        soundtrackEffect.release()
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
@@ -70,34 +79,30 @@ class CarView : RelativeLayout {
             rotationAnimator.duration = 2000
             rotationAnimator.interpolator = AccelerateInterpolator()
             rotationAnimator.doOnStart {
-                engineSound.start()
                 tiresSound.start()
+                engineSound.start()
                 isAnimating = true
             }
             rotationAnimator.doOnEnd {
-                move(event)
+
+                val animSet = AnimatorSet()
+                val xTo = event.x
+                val yTo = event.y
+                val y = ObjectAnimator.ofFloat(carView, "translationY", yTo - height / 2 - carView.height / 2)
+                val x = ObjectAnimator.ofFloat(carView, "translationX", xTo - width / 2)
+                animSet.playTogether(x, y)
+                animSet.interpolator = AccelerateInterpolator()
+                animSet.duration = 3000
+                animSet.start()
+                animSet.doOnEnd {
+                    isAnimating = false
+                    tiresSound.reset()
+                    engineSound.reset()
+                }
             }
             rotationAnimator.start()
         }
-
         return false
-    }
-
-    private fun move(event: MotionEvent) {
-
-
-        val animSet = AnimatorSet()
-        val xTo = event.x
-        val yTo = event.y
-        val y = ObjectAnimator.ofFloat(carView, "translationY", yTo - height / 2 - carView.height / 2)
-        val x = ObjectAnimator.ofFloat(carView, "translationX", xTo - width / 2)
-        animSet.playTogether(x, y)
-        animSet.interpolator = AccelerateInterpolator()
-        animSet.duration = 3000
-        animSet.start()
-        animSet.doOnEnd {
-            isAnimating = false
-        }
     }
 
     private fun angleBetweenPoints(x0: Float, y0: Float, x1: Float, y1: Float): Double {
